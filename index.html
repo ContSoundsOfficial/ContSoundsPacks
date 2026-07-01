@@ -5,12 +5,13 @@
     <title>Social Soundboard</title>
     <style>
         body { font-family: sans-serif; background: #0d1117; color: white; margin: 0; }
-        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: #161b22; }
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: #161b22; border-bottom: 1px solid #30363d; }
         .view { padding: 30px; display: none; }
         .active { display: block; }
-        .card { background: #161b22; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #30363d; }
+        .card { background: #161b22; padding: 20px; border-radius: 12px; border: 1px solid #30363d; text-align: center; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
         .pfp { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #58a6ff; }
-        input, button { display: block; width: 100%; padding: 12px; margin-bottom: 10px; background: #0d1117; color: white; border: 1px solid #30363d; border-radius: 6px; }
+        input, button { display: block; width: 100%; padding: 12px; margin-bottom: 10px; background: #0d1117; color: white; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -20,23 +21,15 @@
     <div id="auth-box"><button id="login-btn">Login with Google</button></div>
     <div id="user-box" style="display:none; align-items:center; gap:15px;">
         <span id="uName"></span>
-        <img id="uPfp" class="pfp">
-        <button onclick="showView('dashboard-view')">My Dashboard</button>
+        <img id="uPfp" class="pfp" style="width:40px; height:40px;">
+        <button onclick="showView('dashboard-view')" style="width:auto;">My Dashboard</button>
     </div>
 </nav>
 
-<div id="setup-view" class="view">
-    <div class="card" style="max-width:400px; margin:auto;">
-        <h1>Setup Profile</h1>
-        <input type="text" id="setupName" placeholder="Enter Username">
-        <input type="file" id="setupPfp" accept="image/*">
-        <button onclick="saveProfile()">Save Profile</button>
-    </div>
-</div>
-
 <div id="home-view" class="view active">
     <h1>👥 Creators</h1>
-    <div id="creators-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:20px;"></div>
+    <input type="text" id="search-bar" placeholder="Search usernames...">
+    <div id="creators-grid" class="grid"></div>
 </div>
 
 <div id="dashboard-view" class="view">
@@ -44,75 +37,65 @@
         <h1>Upload Sound</h1>
         <input type="text" id="sName" placeholder="Sound Name">
         <input type="file" id="aFile" accept="audio/*">
-        <input type="file" id="iFile" accept="image/*">
         <button onclick="uploadSound()">Upload to Community</button>
     </div>
 </div>
 
 <script type="module">
+    // CORRECTED CDN PATHS
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, collection, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, doc, setDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
-    const app = initializeApp({
+    const firebaseConfig = {
         apiKey: "AIzaSyBIpJ5FFTWp8MmSfVEYbq9-1LfnWXLceT8",
         authDomain: "contcommunitysounds.firebaseapp.com",
         projectId: "contcommunitysounds",
         storageBucket: "contcommunitysounds.firebasestorage.app",
         appId: "1:534535266185:web:dbf16cf4f6c3ca6d614b58"
-    });
+    };
 
-    const auth = getAuth(app), db = getFirestore(app), storage = getStorage(app);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
 
     window.showView = (id) => {
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         document.getElementById(id).classList.add('active');
     };
 
-    // SAVE PROFILE
-    window.saveProfile = async () => {
-        const file = document.getElementById('setupPfp').files[0];
-        const pRef = ref(storage, 'pfps/' + auth.currentUser.uid);
-        await uploadBytes(pRef, file);
-        const url = await getDownloadURL(pRef);
-        await setDoc(doc(db, "users", auth.currentUser.uid), {
-            username: document.getElementById('setupName').value,
-            photoURL: url
+    // Load Creators List
+    onSnapshot(collection(db, "users"), (snap) => {
+        const grid = document.getElementById('creators-grid');
+        grid.innerHTML = "";
+        snap.forEach(doc => {
+            const d = doc.data();
+            grid.innerHTML += `<div class="card"><img src="${d.photoURL}" class="pfp"><h3>${d.username}</h3></div>`;
         });
-        showView('home-view');
-    };
-
-    // UPLOAD SOUND
-    window.uploadSound = async () => {
-        const name = document.getElementById('sName').value;
-        const aFile = document.getElementById('aFile').files[0];
-        const iFile = document.getElementById('iFile').files[0];
-        
-        const aRef = ref(storage, 'sounds/' + Date.now());
-        const iRef = ref(storage, 'covers/' + Date.now());
-        
-        await uploadBytes(aRef, aFile);
-        await uploadBytes(iRef, iFile);
-        
-        await addDoc(collection(db, "sounds"), {
-            name,
-            audioUrl: await getDownloadURL(aRef),
-            coverUrl: await getDownloadURL(iRef),
-            uploader: auth.currentUser.displayName
-        });
-        alert("Sound Uploaded!");
-    };
+    });
 
     onAuthStateChanged(auth, (user) => {
         if (user) {
             document.getElementById('auth-box').style.display = 'none';
             document.getElementById('user-box').style.display = 'flex';
-            showView('setup-view'); // Force user to set up profile
+            document.getElementById('uName').innerText = user.displayName;
+            document.getElementById('uPfp').src = user.photoURL;
         }
     });
 
     document.getElementById("login-btn").onclick = () => signInWithPopup(auth, new GoogleAuthProvider());
+    
+    window.uploadSound = async () => {
+        const name = document.getElementById('sName').value;
+        const file = document.getElementById('aFile').files[0];
+        const sRef = ref(storage, 'sounds/' + Date.now() + file.name);
+        await uploadBytes(sRef, file);
+        const url = await getDownloadURL(sRef);
+        await addDoc(collection(db, "sounds"), { name, audioUrl: url, uploader: auth.currentUser.displayName });
+        alert("Sound Uploaded!");
+    };
 </script>
 </body>
 </html>

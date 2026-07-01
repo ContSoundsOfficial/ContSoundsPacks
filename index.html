@@ -4,184 +4,73 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Soundboard</title>
-
 <style>
-body{
-    margin:0;
-    font-family:Arial;
-    background:#0d1117;
-    color:white;
-}
-
-header{
-    background:#111827;
-    padding:25px;
-    text-align:center;
-}
-
-header h1{
-    font-size:40px;
-}
-
-.search{
-    width:90%;
-    max-width:600px;
-    margin:20px auto;
-}
-
-.search input{
-    width:100%;
-    padding:15px;
-    border:none;
-    border-radius:10px;
-    background:#1f2937;
-    color:white;
-    font-size:16px;
-}
-
-.category{
-    width:90%;
-    margin:auto;
-    margin-bottom:50px;
-}
-
-.category h2{
-    margin:20px 0;
-}
-
-.grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-    gap:15px;
-}
-
-.sound{
-    background:#1f2937;
-    padding:15px;
-    border-radius:12px;
-    text-align:center;
-}
-
-button{
-    margin-top:10px;
-    width:100%;
-    padding:10px;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
-    background:#3b82f6;
-    color:white;
-}
-
-button:hover{
-    background:#60a5fa;
-}
-
-.download{
-    background:#10b981;
-}
-
-.download:hover{
-    background:#34d399;
-}
+    body { margin:0; font-family:Arial; background:#0d1117; color:white; }
+    header { background:#111827; padding:25px; text-align:center; }
+    .auth-box { text-align: center; padding: 50px; }
+    #app { display: none; }
+    .search { width:90%; max-width:600px; margin:20px auto; }
+    .search input { width:100%; padding:15px; border:none; border-radius:10px; background:#1f2937; color:white; }
+    .category { width:90%; margin:auto; margin-bottom:50px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:15px; }
+    .sound { background:#1f2937; padding:15px; border-radius:12px; text-align:center; }
+    button { margin-top:10px; width:100%; padding:10px; border:none; border-radius:8px; cursor:pointer; background:#3b82f6; color:white; }
+    .download { background:#10b981; }
 </style>
 </head>
-
 <body>
 
-<header>
-<h1>🎵 Soundboard</h1>
-</header>
+<header><h1>🎵 Soundboard</h1></header>
 
-<div class="search">
-<input id="search" placeholder="Search sounds...">
+<div id="auth-section" class="auth-box">
+    <button id="login-btn" style="width: auto;">🔐 Login with Google to Access</button>
 </div>
 
-<button onclick="downloadPack()" style="width:90%;margin:0 auto 20px;display:block;padding:12px;background:#f59e0b;border:none;border-radius:10px;">
-⬇ Download Full Sound Pack
-</button>
-
-<!-- ANIME -->
-<div class="category">
-<h2>🎌 Anime</h2>
-<div class="grid">
-
-<div class="sound">
-Ahha
-<button onclick="play('AnimeSounds/Ahha.mp3')">Play</button>
-<button class="download" onclick="download('AnimeSounds/Ahha.mp3')">Download</button>
+<div id="app">
+    <div class="search"><input id="search" placeholder="Search sounds..."></div>
+    
+    <div class="category">
+        <h2>🎌 Anime</h2>
+        <div class="grid">
+            <div class="sound">Ahha <button onclick="play('AnimeSounds/Ahha.mp3')">Play</button></div>
+        </div>
+    </div>
 </div>
 
-<div class="sound">
-Anime Moan
-<button onclick="play('AnimeSounds/animemoan.mp3')">Play</button>
-<button class="download" onclick="download('AnimeSounds/animemoan.mp3')">Download</button>
-</div>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-<div class="sound">
-Ara Ara
-<button onclick="play('AnimeSounds/araara.mp3')">Play</button>
-<button class="download" onclick="download('AnimeSounds/araara.mp3')">Download</button>
-</div>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBIpJ5FFTWp8MmSfVEYbq9-1LfnWXLceT8",
+        authDomain: "contcommunitysounds.firebaseapp.com",
+        projectId: "contcommunitysounds",
+        storageBucket: "contcommunitysounds.firebasestorage.app",
+        messagingSenderId: "534535266185",
+        appId: "1:534535266185:web:dbf16cf4f6c3ca6d614b58"
+    };
 
-</div>
-</div>
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
 
-<!-- SATISFYING -->
-<div class="category">
-<h2>✨ Satisfying</h2>
-<div class="grid">
+    // Login Logic
+    document.getElementById("login-btn").onclick = () => {
+        signInWithPopup(auth, provider).catch(e => console.error(e));
+    };
 
-<div class="sound">
-Click
-<button onclick="play('Satisfying/Click-Satisfying.mp3')">Play</button>
-<button class="download" onclick="download('Satisfying/Click-Satisfying.mp3')">Download</button>
-</div>
-
-<div class="sound">
-Light Click
-<button onclick="play('Satisfying/Light-Click.mp3')">Play</button>
-<button class="download" onclick="download('Satisfying/Light-Click.mp3')">Download</button>
-</div>
-
-</div>
-</div>
-
-<script>
-let current = null;
-
-function play(file){
-    if(current){
-        current.pause();
-        current = null;
-    }
-
-    current = new Audio(file);
-    current.play().catch(e => alert("Audio failed: " + file));
-}
-
-function download(file){
-    const a = document.createElement("a");
-    a.href = file;
-    a.download = file.split("/").pop();
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-}
-
-function downloadPack(){
-    const a = document.createElement("a");
-    a.href = "Soundboard.zip";
-    a.download = "Soundboard.zip";
-    a.click();
-}
-
-document.getElementById("search").addEventListener("input", e=>{
-    const v = e.target.value.toLowerCase();
-    document.querySelectorAll(".sound").forEach(s=>{
-        s.style.display = s.innerText.toLowerCase().includes(v) ? "block" : "none";
+    // State Listener
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            document.getElementById("auth-section").style.display = "none";
+            document.getElementById("app").style.display = "block";
+        }
     });
-});
+
+    // Audio Playback Logic
+    window.play = (file) => {
+        new Audio(file).play().catch(e => alert("Audio file not found: " + file));
+    };
 </script>
 
 </body>

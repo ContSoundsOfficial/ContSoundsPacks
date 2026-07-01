@@ -2,98 +2,96 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Community Soundboard</title>
+    <title>Social Soundboard</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: white; margin: 0; }
-        nav { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: #161b22; border-bottom: 1px solid #30363d; }
-        .tab-btn { background: #21262d; border: 1px solid #30363d; color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
+        body { font-family: sans-serif; background: #0d1117; color: white; margin: 0; }
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: #161b22; border-bottom: 1px solid #30363d; }
+        .user-nav { display: flex; align-items: center; gap: 15px; }
+        .pfp { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #58a6ff; }
         .view { padding: 30px; display: none; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-        .card { background: #161b22; padding: 15px; border-radius: 12px; border: 1px solid #30363d; }
-        .pfp { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #58a6ff; }
-        input, button { display: block; margin-bottom: 10px; width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #30363d; background: #0d1117; color: white; }
+        .active { display: block; }
+        .card { background: #161b22; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #30363d; }
+        input, button { display: block; width: 100%; padding: 12px; margin-bottom: 10px; background: #0d1117; color: white; border: 1px solid #30363d; border-radius: 6px; }
     </style>
 </head>
 <body>
 
 <nav>
-    <h2 onclick="showView('feed-view')">🎵 Community Sounds</h2>
-    <div id="user-controls">
-        <button id="login-btn" class="tab-btn">Login with Google</button>
-        <div id="user-profile" style="display:none; text-align:right;">
-            <span id="username"></span>
-            <img id="user-img" class="pfp">
-            <button onclick="showView('profile-view')">My Dashboard</button>
-        </div>
+    <h2 onclick="showView('feed-view')" style="cursor:pointer;">🎵 Soundboard</h2>
+    <div id="auth-box"><button id="login-btn">Login with Google</button></div>
+    <div id="user-box" class="user-nav" style="display:none;">
+        <span id="uName"></span>
+        <img id="uPfp" class="pfp">
+        <button onclick="showView('dashboard-view')" style="width:auto;">My Dashboard</button>
     </div>
 </nav>
 
-<div id="feed-view" class="view" style="display:block;">
-    <h1>🔥 Trending Sounds</h1>
-    <div id="feed-grid" class="grid"></div>
+<div id="feed-view" class="view active">
+    <h1>🔥 Popular Sounds</h1>
+    <div id="feed-grid"></div>
 </div>
 
-<div id="profile-view" class="view">
-    <h1>My Community Dashboard</h1>
+<div id="dashboard-view" class="view">
     <div class="card">
-        <h3>Add sounds for your community!</h3>
+        <h1>My Community Dashboard</h1>
         <input type="text" id="sName" placeholder="Sound Name">
         <input type="file" id="aFile" accept="audio/*">
         <input type="file" id="iFile" accept="image/*">
-        <button onclick="uploadSound()" style="background:#238636;">Upload to My Community</button>
+        <button onclick="uploadSound()" style="background:#238636;">Upload Sound</button>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firestore.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/storage.js";
+    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
-    const firebaseConfig = { /* PASTE YOUR CONFIG HERE */ };
+    // REPLACE THIS WITH THE CONFIG FROM YOUR FIREBASE CONSOLE
+    const firebaseConfig = {
+        apiKey: "AIzaSyBIpJ5FFTWp8MmSfVEYbq9-1LfnWXLceT8",
+        authDomain: "contcommunitysounds.firebaseapp.com",
+        projectId: "contcommunitysounds",
+        storageBucket: "contcommunitysounds.firebasestorage.app",
+        appId: "1:534535266185:web:dbf16cf4f6c3ca6d614b58"
+    };
+
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
     const storage = getStorage(app);
 
-    // Navigation logic
     window.showView = (id) => {
-        document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
-        document.getElementById(id).style.display = 'block';
-    }
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    };
 
-    // Auth handle
     onAuthStateChanged(auth, (user) => {
         if (user) {
-            document.getElementById('login-btn').style.display = 'none';
-            document.getElementById('user-profile').style.display = 'block';
-            document.getElementById('username').innerText = user.displayName;
-            document.getElementById('user-img').src = user.photoURL;
+            document.getElementById('auth-box').style.display = 'none';
+            document.getElementById('user-box').style.display = 'flex';
+            document.getElementById('uName').innerText = user.displayName;
+            document.getElementById('uPfp').src = user.photoURL;
         }
     });
-    
+
     document.getElementById("login-btn").onclick = () => signInWithPopup(auth, new GoogleAuthProvider());
 
-    // Upload logic
     window.uploadSound = async () => {
         const name = document.getElementById('sName').value;
         const aFile = document.getElementById('aFile').files[0];
         const iFile = document.getElementById('iFile').files[0];
         
         const aRef = ref(storage, 'sounds/' + Date.now() + aFile.name);
-        const iRef = ref(storage, 'covers/' + Date.now() + iFile.name);
-        
         await uploadBytes(aRef, aFile);
+        const aUrl = await getDownloadURL(aRef);
+
+        const iRef = ref(storage, 'covers/' + Date.now() + iFile.name);
         await uploadBytes(iRef, iFile);
+        const iUrl = await getDownloadURL(iRef);
         
-        await addDoc(collection(db, "sounds"), {
-            name, 
-            audioUrl: await getDownloadURL(aRef),
-            imgUrl: await getDownloadURL(iRef),
-            uploader: auth.currentUser.displayName,
-            timestamp: Date.now()
-        });
-        alert("Sound Added!");
+        await addDoc(collection(db, "sounds"), { name, audioUrl: aUrl, imgUrl: iUrl, uploader: auth.currentUser.displayName });
+        alert("Uploaded!");
     };
 </script>
 </body>

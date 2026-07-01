@@ -2,27 +2,30 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Community Soundboard</title>
+    <title>Social Soundboard</title>
     <style>
         body { font-family: sans-serif; background: #0d1117; color: white; margin: 0; }
         nav { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: #161b22; border-bottom: 1px solid #30363d; }
+        .nav-links { display: flex; gap: 15px; align-items: center; }
         .view { padding: 30px; display: none; }
         .active { display: block; }
         .card { background: #161b22; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #30363d; }
-        input, button { display: block; width: 100%; padding: 12px; margin-bottom: 10px; background: #0d1117; color: white; border: 1px solid #30363d; border-radius: 6px; }
-        #user-box { display: flex; align-items: center; gap: 15px; }
+        button { cursor: pointer; background: #238636; color: white; border: none; padding: 10px 15px; border-radius: 6px; }
         .pfp { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #58a6ff; }
     </style>
 </head>
 <body>
 
 <nav>
-    <h2 onclick="showView('feed-view')" style="cursor:pointer;">🎵 Soundboard</h2>
+    <div class="nav-links">
+        <h2 onclick="showView('feed-view')" style="cursor:pointer;">🏠 Home</h2>
+        <h2 onclick="showView('creators-view')" style="cursor:pointer; margin-left:20px;">👥 Creators</h2>
+    </div>
     <div id="auth-box"><button id="login-btn">Login with Google</button></div>
-    <div id="user-box" style="display:none;">
+    <div id="user-box" style="display:none; align-items:center; gap:15px;">
         <span id="uName"></span>
         <img id="uPfp" class="pfp">
-        <button onclick="showView('dashboard-view')" style="width:auto;">My Dashboard</button>
+        <button onclick="showView('dashboard-view')">My Dashboard</button>
     </div>
 </nav>
 
@@ -31,24 +34,27 @@
     <div id="feed-grid"></div>
 </div>
 
+<div id="creators-view" class="view">
+    <h1>Explore Creators</h1>
+    <div id="creators-list"></div>
+</div>
+
 <div id="dashboard-view" class="view">
     <div class="card">
-        <h1>My Community Dashboard</h1>
+        <h1>My Dashboard</h1>
         <input type="text" id="sName" placeholder="Sound Name">
         <input type="file" id="aFile" accept="audio/*">
         <input type="file" id="iFile" accept="image/*">
-        <button onclick="uploadSound()" style="background:#238636;">Upload Sound</button>
+        <button onclick="uploadSound()">Upload Sound</button>
     </div>
 </div>
 
 <script type="module">
-    // FIX: Using standardized, correct Google CDN paths
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
-    // PASTE YOUR CONFIG HERE
     const firebaseConfig = {
         apiKey: "AIzaSyBIpJ5FFTWp8MmSfVEYbq9-1LfnWXLceT8",
         authDomain: "contcommunitysounds.firebaseapp.com",
@@ -67,6 +73,16 @@
         document.getElementById(id).classList.add('active');
     };
 
+    // Load content
+    onSnapshot(collection(db, "sounds"), (snap) => {
+        const grid = document.getElementById('feed-grid');
+        grid.innerHTML = "";
+        snap.forEach(doc => {
+            const d = doc.data();
+            grid.innerHTML += `<div class="card"><h3>${d.name}</h3><p>By ${d.uploader}</p><audio controls src="${d.audioUrl}"></audio></div>`;
+        });
+    });
+
     onAuthStateChanged(auth, (user) => {
         if (user) {
             document.getElementById('auth-box').style.display = 'none';
@@ -82,18 +98,17 @@
         const name = document.getElementById('sName').value;
         const aFile = document.getElementById('aFile').files[0];
         const iFile = document.getElementById('iFile').files[0];
-        if(!name || !aFile || !iFile) return alert("Upload all files!");
         
-        const aRef = ref(storage, 'sounds/' + Date.now() + aFile.name);
+        const aRef = ref(storage, 'sounds/' + Date.now());
         await uploadBytes(aRef, aFile);
         const aUrl = await getDownloadURL(aRef);
 
-        const iRef = ref(storage, 'covers/' + Date.now() + iFile.name);
+        const iRef = ref(storage, 'covers/' + Date.now());
         await uploadBytes(iRef, iFile);
         const iUrl = await getDownloadURL(iRef);
         
         await addDoc(collection(db, "sounds"), { name, audioUrl: aUrl, imgUrl: iUrl, uploader: auth.currentUser.displayName });
-        alert("Sound uploaded!");
+        alert("Uploaded!");
     };
 </script>
 </body>

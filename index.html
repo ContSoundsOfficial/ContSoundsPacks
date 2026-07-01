@@ -2,16 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Social Soundboard</title>
+    <title>Community Soundboard</title>
     <style>
         body { font-family: sans-serif; background: #0d1117; color: white; margin: 0; }
         nav { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: #161b22; border-bottom: 1px solid #30363d; }
-        .user-nav { display: flex; align-items: center; gap: 15px; }
-        .pfp { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #58a6ff; }
         .view { padding: 30px; display: none; }
         .active { display: block; }
         .card { background: #161b22; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #30363d; }
         input, button { display: block; width: 100%; padding: 12px; margin-bottom: 10px; background: #0d1117; color: white; border: 1px solid #30363d; border-radius: 6px; }
+        #user-box { display: flex; align-items: center; gap: 15px; }
+        .pfp { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #58a6ff; }
     </style>
 </head>
 <body>
@@ -19,7 +19,7 @@
 <nav>
     <h2 onclick="showView('feed-view')" style="cursor:pointer;">🎵 Soundboard</h2>
     <div id="auth-box"><button id="login-btn">Login with Google</button></div>
-    <div id="user-box" class="user-nav" style="display:none;">
+    <div id="user-box" style="display:none;">
         <span id="uName"></span>
         <img id="uPfp" class="pfp">
         <button onclick="showView('dashboard-view')" style="width:auto;">My Dashboard</button>
@@ -42,12 +42,13 @@
 </div>
 
 <script type="module">
+    // FIX: Using standardized, correct Google CDN paths
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
-    // REPLACE THIS WITH THE CONFIG FROM YOUR FIREBASE CONSOLE
+    // PASTE YOUR CONFIG HERE
     const firebaseConfig = {
         apiKey: "AIzaSyBIpJ5FFTWp8MmSfVEYbq9-1LfnWXLceT8",
         authDomain: "contcommunitysounds.firebaseapp.com",
@@ -81,6 +82,7 @@
         const name = document.getElementById('sName').value;
         const aFile = document.getElementById('aFile').files[0];
         const iFile = document.getElementById('iFile').files[0];
+        if(!name || !aFile || !iFile) return alert("Upload all files!");
         
         const aRef = ref(storage, 'sounds/' + Date.now() + aFile.name);
         await uploadBytes(aRef, aFile);
@@ -91,7 +93,7 @@
         const iUrl = await getDownloadURL(iRef);
         
         await addDoc(collection(db, "sounds"), { name, audioUrl: aUrl, imgUrl: iUrl, uploader: auth.currentUser.displayName });
-        alert("Uploaded!");
+        alert("Sound uploaded!");
     };
 </script>
 </body>
